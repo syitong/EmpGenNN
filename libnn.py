@@ -42,32 +42,34 @@ class fullnn:
         with self._graph.as_default():
             global_step = tf.Variable(0,trainable=False,name='global')
             x = tf.placeholder(dtype=tf.float32,
-                shape=[None,d],name='features')
+                shape=[None,self._dim],name='features')
             y = tf.placeholder(dtype=tf.uint8,
                 shape=[None],name='labels')
             hl = x
             initializer = tf.glorot_uniform_initializer()
-            for idx in range(depth):
+            for idx in range(self._depth):
                 hl_name = 'Hidden_Layer' + str(idx)
-                hl = tf.layers.dense(inputs=hl,units=self.width,
+                hl = tf.layers.dense(inputs=hl,units=self._width,
                     kernel_initializer=initializer,
                     activation=tf.nn.relu,
-                    name=layer_name)
+                    name=hl_name)
 
             logits = tf.layers.dense(inputs=hl,units=self._n_classes,
                 name='Logits')
-            probab = tf.nn.softmax(logits,name='Probabs')
-            onehot_labels = tf.one_hot(indices=y,depth=n_classes)
+            tf.add_to_collection("Output",logits)
+            probabs = tf.nn.softmax(logits)
+            tf.add_to_collection("Output",probabs)
+            onehot_labels = tf.one_hot(indices=y,depth=self._n_classes)
             log_loss = tf.losses.softmax_cross_entropy(
                 onehot_labels=onehot_labels,logits=logits
             )
             tf.add_to_collection('Loss',log_loss)
+            self._sess.run(tf.global_variables_initializer())
 
     def predict(self,data):
         with self._graph.as_default():
             feed_dict = {'features:0':data}
-            logits = tf.get_tensor_by_name('Logits')
-            probabs = tf.get_tensor_by_name('Probabs')
+            logits,probabs = tf.get_collection('Output')
             predictions = {
                 'indices':tf.argmax(input=logits,axis=1),
                 'probabilities':probabs
@@ -76,12 +78,15 @@ class fullnn:
         results = self._sess.run(predictions,feed_dict=feed_dict)
         classes = [self._classes[index] for index in
             results['indices']]
-        probabilitys = results['probabilities']
+        probabilities = results['probabilities']
         return classes,probabilities
 
     def score(self,data,labels):
         predictions,_ = self.predict(data)
-        accuracy = np.sum(predictions==labels) / 100
+        s = 0.
+        for idx in range(len(data)):
+            s += predictions[idx]==labels[idx]
+        accuracy = s / len(data)
         return accuracy
 
     def fit(self,data,labels,batch_size=1,n_iter=1000):
@@ -89,7 +94,7 @@ class fullnn:
         indices = np.array(indices)
         with self._graph.as_default():
             loss = tf.get_collection('Loss')[0]
-            global_step = tf.get_tensor_by_name('global:0')
+            global_step = self._graph.get_tensor_by_name('global:0')
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=10)
             train_op = optimizer.minimize(loss=loss,
                 global_step=global_step)
