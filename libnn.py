@@ -50,11 +50,13 @@ class fullnn:
             for idx in range(self._depth):
                 hl_name = 'Hidden_Layer' + str(idx)
                 hl = tf.layers.dense(inputs=hl,units=self._width,
+                    # use_bias=False,
                     kernel_initializer=initializer,
                     activation=tf.nn.relu,
                     name=hl_name)
 
             logits = tf.layers.dense(inputs=hl,units=self._n_classes,
+                use_bias=False,
                 name='Logits')
             tf.add_to_collection("Output",logits)
             probabs = tf.nn.softmax(logits)
@@ -95,7 +97,7 @@ class fullnn:
         with self._graph.as_default():
             loss = tf.get_collection('Loss')[0]
             global_step = self._graph.get_tensor_by_name('global:0')
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=10)
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
             train_op = optimizer.minimize(loss=loss,
                 global_step=global_step)
 
