@@ -46,7 +46,7 @@ class fullnn:
             y = tf.placeholder(dtype=tf.uint8,
                 shape=[None],name='labels')
             hl = x
-            initializer = tf.glorot_uniform_initializer()
+            initializer = tf.random_normal_initializer(stddev=0.01)
             for idx in range(self._depth):
                 hl_name = 'Hidden_Layer' + str(idx)
                 hl = tf.layers.dense(inputs=hl,units=self._width,
@@ -55,8 +55,12 @@ class fullnn:
                     activation=tf.nn.relu,
                     name=hl_name)
 
+            dense_layer = tf.layers.dense(inputs=hl,units=self._width,
+                kernel_initializer=initializer,
+                activation=tf.nn.sigmoid)
             logits = tf.layers.dense(inputs=hl,units=self._n_classes,
-                use_bias=False,
+                # use_bias=False,
+                kernel_initializer=initializer,
                 name='Logits')
             tf.add_to_collection("Output",logits)
             probabs = tf.nn.softmax(logits)
@@ -70,13 +74,13 @@ class fullnn:
 
     def predict(self,data):
         with self._graph.as_default():
-            feed_dict = {'features:0':data}
             logits,probabs = tf.get_collection('Output')
             predictions = {
                 'indices':tf.argmax(input=logits,axis=1),
                 'probabilities':probabs
             }
 
+        feed_dict = {'features:0':data}
         results = self._sess.run(predictions,feed_dict=feed_dict)
         classes = [self._classes[index] for index in
             results['indices']]
@@ -87,7 +91,7 @@ class fullnn:
         predictions,_ = self.predict(data)
         s = 0.
         for idx in range(len(data)):
-            s += predictions[idx]==labels[idx]
+            s += (predictions[idx]==labels[idx])
         accuracy = s / len(data)
         return accuracy
 
