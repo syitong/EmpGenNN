@@ -46,18 +46,14 @@ class fullnn:
             y = tf.placeholder(dtype=tf.uint8,
                 shape=[None],name='labels')
             hl = x
-            initializer = tf.random_normal_initializer(stddev=0.01)
+            initializer = tf.glorot_normal_initializer()
             for idx in range(self._depth):
                 hl_name = 'Hidden_Layer' + str(idx)
                 hl = tf.layers.dense(inputs=hl,units=self._width,
-                    # use_bias=False,
                     kernel_initializer=initializer,
-                    activation=tf.nn.relu,
+                    activation=tf.nn.sigmoid,
                     name=hl_name)
 
-            dense_layer = tf.layers.dense(inputs=hl,units=self._width,
-                kernel_initializer=initializer,
-                activation=tf.nn.sigmoid)
             logits = tf.layers.dense(inputs=hl,units=self._n_classes,
                 # use_bias=False,
                 kernel_initializer=initializer,
@@ -101,7 +97,7 @@ class fullnn:
         with self._graph.as_default():
             loss = tf.get_collection('Loss')[0]
             global_step = self._graph.get_tensor_by_name('global:0')
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.3)
             train_op = optimizer.minimize(loss=loss,
                 global_step=global_step)
 
