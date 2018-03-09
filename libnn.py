@@ -18,6 +18,7 @@ class fullnn:
         self._classes = classes
         self._n_classes = len(classes)
         self._total_iter = 0
+        self._total_epoch = 0
         self._graph = tf.Graph()
         self._sess = tf.Session(graph=self._graph)
         self._model_fn()
@@ -37,6 +38,16 @@ class fullnn:
     @property
     def total_iter(self):
         return self._total_iter
+    @property
+    def total_epoch(self):
+        return self._total_epoch
+    @property
+    def trainable_params(self):
+        var_list = {}
+        with self._graph.as_default():
+            for var in tf.trainable_variables():
+                var_list[var.name] = self._sess.run(var)
+        return var_list
 
     def _model_fn(self):
         with self._graph.as_default():
@@ -51,7 +62,7 @@ class fullnn:
                 hl_name = 'Hidden_Layer' + str(idx)
                 hl = tf.layers.dense(inputs=hl,units=self._width,
                     kernel_initializer=initializer,
-                    activation=tf.nn.sigmoid,
+                    activation=tf.nn.relu,
                     name=hl_name)
 
             logits = tf.layers.dense(inputs=hl,units=self._n_classes,
@@ -91,25 +102,32 @@ class fullnn:
         accuracy = s / len(data)
         return accuracy
 
-    def fit(self,data,labels,batch_size=1,n_iter=1000):
+    def fit(self,data,labels,batch_size=1,n_epoch=1):
         indices = [self._classes.index(label) for label in labels]
         indices = np.array(indices)
         with self._graph.as_default():
             loss = tf.get_collection('Loss')[0]
             global_step = self._graph.get_tensor_by_name('global:0')
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.3)
+            # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
+            optimizer = tf.train.AdamOptimizer(learning_rate=0.1)
             train_op = optimizer.minimize(loss=loss,
                 global_step=global_step)
+            self._sess.run(tf.global_variables_initializer())
 
-        for idx in range(n_iter):
-            rand_list = np.random.randint(len(data),size=batch_size)
-            feed_dict = {'features:0':data[rand_list,:],
-                'labels:0':indices[rand_list]}
-            if idx % 10 == 1:
-                print('iter: {0:d}, loss: {1:.4f}'.format(
-                    idx, self._sess.run(loss,feed_dict)))
-            self._sess.run(train_op,feed_dict)
-            self._total_iter += 1
+        for idx in range(n_epoch):
+            rand_indices = np.random.permutation(len(data)) - 1
+            for jdx in range(len(data)//batch_size):
+                batch_indices = rand_indices[jdx*batch_size:(jdx+1)*batch_size]
+                feed_dict = {
+                    'features:0':data[batch_indices],
+                    'labels:0':indices[batch_indices]
+                }
+                if jdx % 100 == 1:
+                    print('epoch: {2:d}, iter: {0:d}, loss: {1:.4f}'.format(
+                        jdx, self._sess.run(loss,feed_dict), idx))
+                self._sess.run(train_op,feed_dict)
+                self._total_iter += 1
+            self._total_epoch += 1
 
     def get_params(self,deep=False):
         params = {
