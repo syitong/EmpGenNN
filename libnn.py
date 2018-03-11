@@ -77,6 +77,10 @@ class fullnn:
                 onehot_labels=onehot_labels,logits=logits
             )
             tf.add_to_collection('Loss',log_loss)
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.02)
+            # optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
+            train_op = optimizer.minimize(loss=log_loss,
+                global_step=global_step,name='Train_op')
             self._sess.run(tf.global_variables_initializer())
 
     def predict(self,data):
@@ -103,28 +107,22 @@ class fullnn:
         return accuracy
 
     def fit(self,data,labels,batch_size=1,n_epoch=1):
-        indices = [self._classes.index(label) for label in labels]
-        indices = np.array(indices)
+        label_idx = [self._classes.index(label) for label in labels]
+        label_idx = np.array(label_idx)
+        train_op = self._graph.get_operation_by_name('Train_op')
         with self._graph.as_default():
             loss = tf.get_collection('Loss')[0]
-            global_step = self._graph.get_tensor_by_name('global:0')
-            # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
-            optimizer = tf.train.AdamOptimizer(learning_rate=0.1)
-            train_op = optimizer.minimize(loss=loss,
-                global_step=global_step)
-            self._sess.run(tf.global_variables_initializer())
-
         for idx in range(n_epoch):
             rand_indices = np.random.permutation(len(data)) - 1
             for jdx in range(len(data)//batch_size):
                 batch_indices = rand_indices[jdx*batch_size:(jdx+1)*batch_size]
                 feed_dict = {
                     'features:0':data[batch_indices],
-                    'labels:0':indices[batch_indices]
+                    'labels:0':label_idx[batch_indices]
                 }
                 if jdx % 100 == 1:
                     print('epoch: {2:d}, iter: {0:d}, loss: {1:.4f}'.format(
-                        jdx, self._sess.run(loss,feed_dict), idx))
+                        self.total_iter, self._sess.run(loss,feed_dict), self.total_epoch))
                 self._sess.run(train_op,feed_dict)
                 self._total_iter += 1
             self._total_epoch += 1
