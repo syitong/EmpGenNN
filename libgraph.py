@@ -16,7 +16,7 @@ def plot_classes(X,Y,classes,portion):
             if Y[idx]==classes[jdx]:
                 c.append(colors[jdx])
     fig = plt.figure()
-    plt.scatter(A[:,0],A[:,1],c=c)
+    plt.scatter(A[:,0],A[:,1],edgecolors=c,facecolors='none')
     plt.axis('equal')
     plt.savefig('image/graph.eps')
     plt.close(fig)
