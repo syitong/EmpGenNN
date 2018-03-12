@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
-import libdata, libgraph, libnn
+import libdata, libnn
+
+plt.scatter(range(5),range(5),marker='o',facecolors='none',edgecolors=['r','b','r','b','r'])
+plt.show()

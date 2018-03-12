@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import libdata, libgraph, libnn
 
 classes = [-1,1]
@@ -13,16 +14,18 @@ with open('data/ideal_Xtrain.txt') as f:
     Xtrain = np.loadtxt(f,delimiter=' ')
 with open('data/ideal_Ytrain.txt') as f:
     Ytrain = np.loadtxt(f,delimiter=' ')
-m = 10
+m = 20
 m_max = 1000
 
 Xtrain = Xtrain[:m]
 Ytrain = Ytrain[:m]
-np.random.shuffle(Ytrain)
+# np.random.shuffle(Ytrain)
 Xtest = Xtest[m:m_max]
 Ytest = Ytest[m:m_max]
-np.random.shuffle(Ytest)
-TITLE = 'random_labeled_'
+# np.random.shuffle(Ytest)
+libgraph.plot_classes(Xtest,Ytest,classes,1)
+# TITLE = 'random_labeled_'
+TITLE = 'correct_labeled_'
 
 clf1 = libnn.fullnn(2,20,4,classes)
 lips_list = []
@@ -33,7 +36,7 @@ last_epoch = 0
 for idx in list(map(int,10**round_list)):
     n_epoch = idx - last_epoch
     last_epoch = idx
-    clf1.fit(batch_size=1,data=Xtrain,labels=Ytrain,n_epoch=n_epoch)
+    clf1.fit(batch_size=5,data=Xtrain,labels=Ytrain,n_epoch=n_epoch)
     train_score = clf1.score(Xtrain,Ytrain)
     test_score = clf1.score(Xtest,Ytest)
     print('train score: {0:.4f},\ntest score: {1:.4f},\nexcess error: {2:.4f}'.format(train_score,
@@ -54,6 +57,27 @@ plt.plot(round_list,lips_list,'bo-')
 plt.title(TITLE+' Lipschitz constant')
 plt.savefig('image/'+TITLE+'lipschitz.eps')
 plt.close(fig2)
+fig3 = plt.figure()
+n = len(classes)
+colors = cm.rainbow(np.linspace(0,1,n))
+c = list()
+Ytest,_ = clf1.predict(Xtest)
+for idx in range(len(Ytest)):
+    for jdx in range(n):
+        if Ytest[idx]==classes[jdx]:
+            c.append(colors[jdx])
+plt.scatter(Xtest[:,0],Xtest[:,1],marker='o',facecolors='none',edgecolors=c)
+c = list()
+for idx in range(len(Ytrain)):
+    for jdx in range(n):
+        if Ytrain[idx]==classes[jdx]:
+            c.append(colors[jdx])
+plt.scatter(Xtrain[:,0],Xtrain[:,1],c=c,marker='x')
+plt.axis('equal')
+plt.savefig('image/'+TITLE+'illustration.eps')
+plt.close(fig3)
+
+
 
 # clf2 = libnn.fullnn(2,50,4,classes)
 # np.random.shuffle(Ytrain)
